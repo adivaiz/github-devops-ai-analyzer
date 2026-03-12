@@ -1,0 +1,11 @@
+# FastAPI - Python framework used to build the backend API server
+fastapi
+
+# Uvicorn - ASGI server used to run the FastAPI application
+uvicorn
+
+# Requests - library for sending HTTP requests to external APIs or services
+requests
+
+# python-dotenv - allows loading environment variables from a .env file
+python-dotenv
