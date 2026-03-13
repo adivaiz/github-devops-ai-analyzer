@@ -10,7 +10,7 @@ async def github_event(request: Request):
     payload = await request.json()
 
     # Save the event to a file
-    with open("events.json", "a") as f:
+    with open("data/events.json", "a") as f:
         f.write(json.dumps(payload) + "\n")
 
     # Analyze the event
