@@ -1,28 +1,59 @@
-
 """
 AI Analyzer Module
 
 This module analyzes GitHub events received by the system.
-In the future it will connect to an AI model, but for now it performs
-simple rule-based analysis.
+For now, it performs simple rule-based analysis based on
+common GitHub event types and actions.
 """
+
+
 def analyze_event(event):
     """
-    Analyze a GitHub event and return a simple insight.
+    Analyze a GitHub event and return an insight string.
     """
 
-    # Identify the type of GitHub event
-    event_type = event.get("action", "unknown")
+    action = event.get("action", "unknown")
 
-    # Example insights
-    if event_type == "opened":
-        return "A new pull request was opened."
+    # Detect push events
+    if "commits" in event:
+        commit_count = len(event.get("commits", []))
 
-    if event_type == "closed":
-        return "A pull request was closed."
+        if commit_count == 0:
+            return "A push event was received with no commits."
 
-    if event_type == "push":
-        return "Code was pushed to the repository."
+        if commit_count == 1:
+            return "A single commit was pushed to the repository."
 
-    # Default message
-    return "Event received but no analysis rule matched."
+        if commit_count > 1:
+            return f"{commit_count} commits were pushed to the repository."
+
+    # Detect pull request related actions
+    if "pull_request" in event:
+        if action == "opened":
+            return "A new pull request was opened."
+
+        if action == "closed":
+            return "A pull request was closed."
+
+        if action == "reopened":
+            return "A pull request was reopened."
+
+        return f"A pull request event was received with action: {action}."
+
+    # Detect branch or tag creation
+    if action == "created":
+        return "A new branch or tag was created."
+
+    # Detect branch or tag deletion
+    if action == "deleted":
+        return "A branch or tag was deleted."
+
+    # Generic opened / closed fallback
+    if action == "opened":
+        return "An item was opened in the repository."
+
+    if action == "closed":
+        return "An item was closed in the repository."
+
+    # Default fallback
+    return f"Event received with unrecognized action: {action}."
