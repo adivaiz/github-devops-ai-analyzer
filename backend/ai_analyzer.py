@@ -1,59 +1,94 @@
 """
 AI Analyzer Module
 
-This module analyzes GitHub events received by the system.
-For now, it performs simple rule-based analysis based on
-common GitHub event types and actions.
+This module prepares GitHub event data for analysis.
+For now, it returns a structured summary and a simple fallback insight.
+Later, the summary can be sent to a real AI model for deeper analysis.
 """
+
+
+def summarize_event(event):
+    """
+    Extract the most important fields from a GitHub event payload.
+    Returns a clean summary dictionary.
+    """
+
+    summary = {
+        "action": event.get("action", "unknown"),
+        "repository": event.get("repository", {}).get("full_name", "unknown"),
+        "sender": event.get("sender", {}).get("login", "unknown"),
+        "event_type": "unknown"
+    }
+
+    # Push event
+    if "commits" in event:
+        summary["event_type"] = "push"
+        summary["commit_count"] = len(event.get("commits", []))
+        summary["ref"] = event.get("ref", "unknown")
+
+    # Pull request event
+    elif "pull_request" in event:
+        pr = event.get("pull_request", {})
+        summary["event_type"] = "pull_request"
+        summary["pr_title"] = pr.get("title", "unknown")
+        summary["pr_state"] = pr.get("state", "unknown")
+        summary["pr_number"] = pr.get("number", "unknown")
+
+    # Workflow run event
+    elif "workflow_run" in event:
+        workflow = event.get("workflow_run", {})
+        summary["event_type"] = "workflow_run"
+        summary["workflow_name"] = workflow.get("name", "unknown")
+        summary["workflow_status"] = workflow.get("status", "unknown")
+        summary["workflow_conclusion"] = workflow.get("conclusion", "unknown")
+
+    return summary
 
 
 def analyze_event(event):
     """
-    Analyze a GitHub event and return an insight string.
+    Analyze a GitHub event and return a simple insight.
+    This is a fallback layer until a real AI model is connected.
     """
 
-    action = event.get("action", "unknown")
+    summary = summarize_event(event)
 
-    # Detect push events
-    if "commits" in event:
-        commit_count = len(event.get("commits", []))
+    if summary["event_type"] == "push":
+        commit_count = summary.get("commit_count", 0)
 
         if commit_count == 0:
-            return "A push event was received with no commits."
+            return "Push event detected, but no commits were included."
 
         if commit_count == 1:
-            return "A single commit was pushed to the repository."
+            return "Push event detected with one commit."
 
-        if commit_count > 1:
-            return f"{commit_count} commits were pushed to the repository."
+        return f"Push event detected with {commit_count} commits."
 
-    # Detect pull request related actions
-    if "pull_request" in event:
+    if summary["event_type"] == "pull_request":
+        action = summary.get("action", "unknown")
+        title = summary.get("pr_title", "unknown")
+
         if action == "opened":
-            return "A new pull request was opened."
+            return f"Pull request opened: {title}"
 
         if action == "closed":
-            return "A pull request was closed."
+            return f"Pull request closed: {title}"
 
         if action == "reopened":
-            return "A pull request was reopened."
+            return f"Pull request reopened: {title}"
 
-        return f"A pull request event was received with action: {action}."
+        return f"Pull request event detected with action: {action}"
 
-    # Detect branch or tag creation
-    if action == "created":
-        return "A new branch or tag was created."
+    if summary["event_type"] == "workflow_run":
+        conclusion = summary.get("workflow_conclusion", "unknown")
+        workflow_name = summary.get("workflow_name", "unknown")
 
-    # Detect branch or tag deletion
-    if action == "deleted":
-        return "A branch or tag was deleted."
+        if conclusion == "success":
+            return f"Workflow '{workflow_name}' completed successfully."
 
-    # Generic opened / closed fallback
-    if action == "opened":
-        return "An item was opened in the repository."
+        if conclusion == "failure":
+            return f"Workflow '{workflow_name}' failed."
 
-    if action == "closed":
-        return "An item was closed in the repository."
+        return f"Workflow '{workflow_name}' event detected with conclusion: {conclusion}"
 
-    # Default fallback
-    return f"Event received with unrecognized action: {action}."
+    return f"Event detected with action: {summary.get('action', 'unknown')}"
