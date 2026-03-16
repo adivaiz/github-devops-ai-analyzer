@@ -9,3 +9,4 @@ requests
 
 # python-dotenv - allows loading environment variables from a .env file
 python-dotenv
+huggingface_hub
